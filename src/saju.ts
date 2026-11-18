@@ -9,6 +9,7 @@ export type BirthInfo = {
   unknownTime: boolean;
   calendar: Calendar;
   leapMonth: boolean;
+  gender?: "male" | "female" | "unspecified";
 };
 export type Pillar = {
   label: string;
