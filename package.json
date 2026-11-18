@@ -4,9 +4,10 @@
   "version": "0.2.0",
   "scripts": {
     "dev": "next dev -H 0.0.0.0",
-    "build": "next build",
+    "build": "npm run test && next build",
     "start": "next start",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "node --test scripts/saju.test.cjs"
   },
   "dependencies": {
     "next": "^16.0.0",

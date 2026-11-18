@@ -35,3 +35,9 @@ Connect this GitHub repo to Vercel, set Framework Preset to Next.js and remove l
 - Repeat with unknown birth time, invalid dates, lunar leap month, and just-before/after solar terms.
 
 No API keys are committed. No full Spline scene link or screenshot was supplied in the transcripts.
+
+## Quality checks
+
+The production build runs `npm run test` before compiling the Next.js app. The tests cover the three tutorial dates (year/month/day pillars), missing birth time, date validity, lunar-to-solar round trips, and the explicit raw-clock-time boundary near 19:00. **Hourly pillars from clocks are not automatically true-solar-time adjusted**; compare independent manse-ryeok services using identical clock-correction conventions before claiming match.
+
+Gemini 3.8 Flash uses low thinking effort and a bounded JSON output budget to reduce incomplete JSON responses. You still need to set `GEMINI_API_KEY` in Vercel for live AI readings; never commit it.
