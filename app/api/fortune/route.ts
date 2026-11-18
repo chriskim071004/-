@@ -70,10 +70,11 @@ export async function POST(req: Request) {
       signal: AbortSignal.timeout(25000),
       body: JSON.stringify({
         contents: [{ role: "user", parts: [{ text: prompt }] }],
-        generationConfig: { responseMimeType: "application/json", maxOutputTokens: 850, temperature: 0.7 },
+        generationConfig: { responseMimeType: "application/json", maxOutputTokens: 1600, temperature: 0.7, thinkingConfig: { thinkingLevel: "low" } },
       }),
     });
     if (response.status === 429) return reply({ error: "AI 무료 사용량 또는 요청 한도를 초과했어요. 잠시 후 다시 시도해 주세요." }, 429);
+    if (response.status === 401 || response.status === 403) return reply({ error: "AI 서비스 인증 설정을 확인해 주세요. 관리자에게 문의해 주세요." }, 503);
     if (!response.ok) return reply({ error: response.status === 404 ? "설정한 AI 모델을 찾을 수 없어요. GEMINI_MODEL을 확인해 주세요." : "AI 응답이 원활하지 않아요. 잠시 후 다시 시도해 주세요." }, 502);
     const payload = await response.json() as {
       candidates?: { content?: { parts?: { text?: string }[] } }[];
