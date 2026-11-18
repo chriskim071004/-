@@ -75,7 +75,26 @@ export async function POST(req: Request) {
     });
     if (response.status === 429) return reply({ error: "AI 무료 사용량 또는 요청 한도를 초과했어요. 잠시 후 다시 시도해 주세요." }, 429);
     if (response.status === 401 || response.status === 403) return reply({ error: "AI 서비스 인증 설정을 확인해 주세요. 관리자에게 문의해 주세요." }, 503);
-    if (!response.ok) return reply({ error: response.status === 404 ? "설정한 AI 모델을 찾을 수 없어요. GEMINI_MODEL을 확인해 주세요." : "AI 응답이 원활하지 않아요. 잠시 후 다시 시도해 주세요." }, 502);
+    if (!response.ok) {
+      let upstreamCode = "";
+      let upstreamMessage = "";
+      try {
+        const payload = await response.json() as { error?: { status?: string; message?: string } };
+        upstreamCode = payload.error?.status || "";
+        upstreamMessage = payload.error?.message || "";
+      } catch { /* Non-JSON upstream response; status alone is still useful. */ }
+      // Never log credentials, request headers, full birth dates, or user input.
+      console.error("[fortune] Gemini API failure", {
+        httpStatus: response.status,
+        upstreamCode,
+        message: upstreamMessage.slice(0, 350).replaceAll(apiKey, "[REDACTED]"),
+        model,
+      });
+      if (response.status === 400) return reply({ error: "AI 요청 형식 오류(400)입니다. 서버 설정을 점검하고 있어요." }, 502);
+      if (response.status === 404) return reply({ error: "AI 모델을 찾을 수 없어요(404). 모델 이름과 프로젝트 접근 권한을 확인해 주세요." }, 502);
+      if (response.status >= 500) return reply({ error: "Gemini 서버 오류(" + response.status + ")입니다. 잠시 후 다시 시도해 주세요." }, 502);
+      return reply({ error: "Gemini 연결 오류(" + response.status + ", " + upstreamCode + ")입니다. 관리자에게 문의해 주세요." }, 502);
+    }
     const payload = await response.json() as {
       candidates?: { content?: { parts?: { text?: string }[] } }[];
     };
@@ -100,6 +119,14 @@ export async function POST(req: Request) {
     if (error instanceof SyntaxError) return reply({ error: "요청 데이터를 확인해 주세요." }, 400);
     if (error instanceof Error && /음력 날짜|생년월일|사주를 계산|출생 시간|존재하지 않는|지원 범위/.test(error.message)) {
       return reply({ error: error.message }, 400);
+    }
+    const detail = error instanceof Error ? { name: error.name, message: error.message.slice(0, 240) } : { name: "unknown" };
+    console.error("[fortune] Unhandled request failure", detail);
+    if (error instanceof Error && (error.name === "TimeoutError" || error.name === "AbortError")) {
+      return reply({ error: "Gemini 응답 시간이 초과되었어요. 다시 시도해 주세요." }, 504);
+    }
+    if (error instanceof TypeError && /fetch/i.test(error.message)) {
+      return reply({ error: "Gemini 서버에 연결하지 못했어요. 잠시 후 다시 시도해 주세요." }, 502);
     }
     return reply({ error: "요청을 처리하지 못했어요. 다시 시도해 주세요." }, 500);
   }
